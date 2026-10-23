@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GateKeeper Event Check-In</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fbf7f0; --card:#ffffff; --ink:#14213d; --muted:#6b6f80; --line:#ece6da;
+    --brand:#e85d4a; --brand-dark:#c9442f; --brand-soft:#fde8e4;
+    --navy:#14213d; --navy-2:#1f2f55; --gold:#f2b134;
+    --ok:#1f8a5b; --ok-soft:#dff5ea; --warn:#b7791f; --warn-soft:#fdf1d8;
+    --bad:#c53030; --bad-soft:#fde2e2;
+    --shadow:0 1px 2px rgba(20,33,61,.06),0 6px 20px rgba(20,33,61,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+  h1,h2,.stat .n,.ticket h2{font-family:"Space Grotesk","DM Sans",sans-serif;letter-spacing:-.01em}
+  header{background:var(--navy);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+  .logo{width:40px;height:40px;border-radius:12px;background:var(--brand);display:grid;place-items:center;font-family:"Space Grotesk";font-weight:700;font-size:20px;color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.12)}
+  header h1{font-size:20px;margin:0;color:#fff}
+  header .sub{color:#b9c2d8;font-size:12.5px}
+  nav{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap;background:var(--navy-2);padding:4px;border-radius:12px}
+  nav button{background:none;border:none;border-radius:9px;padding:8px 16px;cursor:pointer;font:inherit;font-weight:500;color:#c9d1e4;transition:all .15s}
+  nav button:hover{color:#fff}
+  nav button.active{background:var(--brand);color:#fff;box-shadow:0 2px 8px rgba(232,93,74,.4)}
+  main{max-width:1120px;margin:0 auto;padding:24px 16px 60px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px;box-shadow:var(--shadow)}
+  .card h2{font-size:17px;margin:0 0 14px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  input,select,textarea{font:inherit;padding:9px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fffdf9;color:var(--ink);outline:none;transition:border-color .15s}
+  input:focus,select:focus,textarea:focus{border-color:var(--brand)}
+  textarea{width:100%;min-height:110px;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+  .btn{background:var(--brand);color:#fff;border:none;border-radius:10px;padding:10px 18px;font:inherit;font-weight:600;cursor:pointer;transition:background .15s,transform .05s}
+  .btn:hover{background:var(--brand-dark)}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:#fff;color:var(--navy);border:1.5px solid var(--navy)}
+  .btn.ghost:hover{background:var(--navy);color:#fff}
+  .btn:disabled{opacity:.5;cursor:default}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+  tbody tr:hover{background:#fdf9f2}
+  th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em}
+  .pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600}
+  .pill.in{background:var(--ok-soft);color:var(--ok)} .pill.reg{background:#eef0f6;color:#4a5578}
+  .pill.sent{background:var(--brand-soft);color:var(--brand-dark)} .pill.fail{background:var(--bad-soft);color:var(--bad)}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);border-top:4px solid var(--navy)}
+  .stat:nth-child(2){border-top-color:var(--ok)} .stat:nth-child(3){border-top-color:var(--gold)} .stat:nth-child(4){border-top-color:var(--brand)}
+  .stat .n{font-size:34px;font-weight:700;line-height:1.1} .stat .l{color:var(--muted);font-size:13px;margin-top:4px}
+  .bar{height:10px;background:#f1ebe0;border-radius:99px;overflow:hidden;margin-top:12px}
+  .bar div{height:100%;background:linear-gradient(90deg,var(--gold),var(--brand));transition:width .4s}
+  .feed li{list-style:none;padding:10px 0;border-bottom:1px dashed var(--line);display:flex;justify-content:space-between;gap:10px}
+  .feed{padding:0;margin:0}
+  .muted{color:var(--muted);font-size:13px}
+  .result{border-radius:16px;padding:24px;text-align:center;font-family:"Space Grotesk";font-size:22px;font-weight:700;margin-top:16px}
+  .result.ok{background:var(--ok-soft);color:var(--ok);border:2px solid var(--ok)}
+  .result.dup{background:var(--warn-soft);color:var(--warn);border:2px solid var(--gold)}
+  .result.bad{background:var(--bad-soft);color:var(--bad);border:2px solid var(--bad)}
+  .result small{display:block;font-family:"DM Sans";font-size:14px;font-weight:500;margin-top:6px}
+  #reader{max-width:420px;width:100%;border-radius:14px;overflow:hidden}
+  .qrgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+  .badge{border:2px dashed var(--line);border-radius:14px;padding:14px;text-align:center;background:#fff;break-inside:avoid}
+  .badge .q{display:flex;justify-content:center;margin:8px 0}
+  .badge b{display:block}
+  .qrmini{width:56px;height:56px;padding:3px;background:#fff;border:1px solid var(--line);border-radius:8px}
+  .qrmini img,.qrmini canvas{width:48px!important;height:48px!important}
+  #ticketView{min-height:100vh;background:linear-gradient(160deg,var(--navy) 0%,var(--navy-2) 55%,var(--brand) 140%);padding:30px 16px}
+  .ticket{max-width:380px;margin:20px auto;background:#fff;border-radius:22px;padding:28px 26px;text-align:center;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+  .ticket::before,.ticket::after{content:"";position:absolute;top:96px;width:26px;height:26px;border-radius:50%;background:var(--navy-2)}
+  .ticket::before{left:-13px} .ticket::after{right:-13px}
+  .ticket .q{display:flex;justify-content:center;margin:22px 0 18px;padding-top:18px;border-top:2px dashed var(--line)}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ok);font-weight:600}
+  .live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok);animation:p 1.4s infinite}
+  @keyframes p{50%{opacity:.25}}
+  .hide{display:none!important}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 20px;border-radius:12px;font-size:14px;z-index:9;box-shadow:0 8px 24px rgba(20,33,61,.3);border-left:4px solid var(--brand)}
+  @media (max-width:640px){header{padding:14px 16px} nav{margin-left:0;width:100%} nav button{flex:1;padding:8px 6px;font-size:13px}}
+  @media print{header,nav,.noprint{display:none!important} body{background:#fff} .card{border:none;padding:0;box-shadow:none}}
+</style>
+</head>
+<body>
+
+<!-- Guest ticket view (opened from the invite email link) -->
+<div id="ticketView" class="hide">
+  <div class="ticket">
+    <div class="muted">Your entry ticket</div>
+    <h2 id="tEvent" style="margin:6px 0 2px">Event</h2>
+    <div id="tGuest" class="muted"></div>
+    <div class="q" id="tQr"></div>
+    <div class="muted">Show this QR code at the entrance. It can be used once.</div>
+  </div>
+</div>
+
+<div id="appView">
+<header>
+  <div class="logo">G</div>
+  <div>
+    <h1>GateKeeper</h1>
+    <div class="sub">QR event check-in on AWS Serverless: S3, API Gateway, Lambda, DynamoDB, SES</div>
+  </div>
+  <nav>
+    <button data-tab="dashboard" class="active">Live dashboard</button>
+    <button data-tab="events">Events</button>
+    <button data-tab="guests">Guests and QR</button>
+    <button data-tab="scan">Scan</button>
+  </nav>
+</header>
+
+<main>
+  <div class="card row noprint">
+    <label class="muted" for="eventSel">Event</label>
+    <select id="eventSel" style="min-width:260px"></select>
+    <button class="btn ghost" id="refreshBtn">Refresh</button>
+  </div>
+
+  <!-- Dashboard -->
+  <section id="tab-dashboard">
+    <div class="stats">
+      <div class="stat"><div class="n" id="sGuests">0</div><div class="l">Registered guests</div></div>
+      <div class="stat"><div class="n" id="sIn">0</div><div class="l">Checked in</div></div>
+      <div class="stat"><div class="n" id="sOut">0</div><div class="l">Yet to arrive</div></div>
+      <div class="stat"><div class="n" id="sPct">0%</div><div class="l">Attendance</div><div class="bar"><div id="sBar" style="width:0"></div></div></div>
+    </div>
+    <div class="row" style="margin:16px 0 0;align-items:stretch">
+      <div class="card" style="flex:1;min-width:280px">
+        <div class="row" style="justify-content:space-between"><h2 style="margin:0">Latest arrivals</h2><span class="live">Live, updates every 3 s</span></div>
+        <ul class="feed" id="feed"></ul>
+      </div>
+      <div class="card" style="flex:1.4;min-width:300px">
+        <div class="row" style="justify-content:space-between">
+          <h2 style="margin:0">Guest list</h2>
+          <select id="filter"><option value="">All</option><option value="CHECKED_IN">Checked in</option><option value="REGISTERED">Not arrived</option></select>
+        </div>
+        <table><thead><tr><th>Name</th><th>Status</th><th>Time</th></tr></thead><tbody id="dashGuests"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Events -->
+  <section id="tab-events" class="hide">
+    <div class="card">
+      <h2>Create event</h2>
+      <div class="row">
+        <input id="evName" placeholder="Event name" style="flex:2;min-width:200px">
+        <input id="evDate" type="date">
+        <input id="evVenue" placeholder="Venue" style="flex:1;min-width:160px">
+        <button class="btn" id="createEvent">Create</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0">All events</h2><button class="btn ghost" id="seedBtn">Load sample data</button></div>
+      <table><thead><tr><th>Event</th><th>Date</th><th>Venue</th><th>Guests</th><th>Checked in</th></tr></thead><tbody id="eventRows"></tbody></table>
+    </div>
+  </section>
+
+  <!-- Guests -->
+  <section id="tab-guests" class="hide">
+    <div class="card noprint">
+      <h2>Upload guest list</h2>
+      <p class="muted" style="margin-top:0">CSV with a header row <b>name,email</b>. Choose a file or paste the rows. Re-uploading the same email is skipped, so the guest keeps their original QR.</p>
+      <div class="row" style="margin-bottom:10px"><input type="file" id="csvFile" accept=".csv,text/csv"></div>
+      <textarea id="csvText" placeholder="name,email&#10;Priya Kumar,priya@example.com&#10;Arjun Das,arjun@example.com"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="uploadBtn">Upload guests</button>
+        <span class="muted" id="uploadMsg"></span>
+      </div>
+    </div>
+    <div class="card noprint">
+      <h2>Send QR codes by email</h2>
+      <div class="row">
+        <button class="btn" id="inviteBtn">Email QR tickets to all guests</button>
+        <button class="btn ghost" id="printBtn">Print QR badges</button>
+        <span class="muted" id="inviteMsg"></span>
+      </div>
+    </div>
+    <div class="card noprint">
+      <h2>Guests</h2>
+      <table><thead><tr><th>QR</th><th>Name</th><th>Email</th><th>Invite</th><th>Status</th><th></th></tr></thead><tbody id="guestRows"></tbody></table>
+    </div>
+    <div id="printArea" class="qrgrid hide"></div>
+  </section>
+
+  <!-- Scanner -->
+  <section id="tab-scan" class="hide">
+    <div class="card">
+      <h2>Scan tickets</h2>
+      <div class="row" style="margin-bottom:12px">
+        <input id="staff" placeholder="Staff or gate name" value="Gate 1">
+        <button class="btn" id="camBtn">Start camera</button>
+        <label class="btn ghost" style="display:inline-block">Scan from photo<input type="file" id="photoScan" accept="image/*" capture="environment" class="hide"></label>
+      </div>
+      <div id="reader"></div>
+      <div class="row" style="margin-top:12px">
+        <input id="manualQr" placeholder="Or paste QR text, e.g. CHK1:EDEMO1:G1234ABCD:token" style="flex:1;min-width:240px">
+        <button class="btn ghost" id="manualBtn">Check in</button>
+      </div>
+      <div id="scanResult"></div>
+      <p class="muted" id="camNote"></p>
+    </div>
+  </section>
+</main>
+</div>
+<div id="fileScanTmp" class="hide"></div>
+
+<script>
+/* ===== Set this to your API Gateway invoke URL (no trailing slash) ===== */
+const API_URL = "https://3vjqck91sb.execute-api.us-east-1.amazonaws.com";
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtTime = iso => iso ? new Date(iso).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"}) : "";
+function toast(m){ const t=document.createElement("div"); t.className="toast"; t.textContent=m; document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
+
+async function api(path, opts={}){
+  const res = await fetch(API_URL + path, {headers:{"Content-Type":"application/json"}, ...opts});
+  const data = await res.json().catch(()=>({}));
+  return {status:res.status, data};
+}
+function qr(el, text, size){ el.innerHTML=""; new QRCode(el, {text, width:size, height:size, correctLevel:QRCode.CorrectLevel.M}); }
+
+let events = [], currentEvent = "", guests = [], timer = null;
+let cam = null, lastText = "", lastAt = 0;
+
+/* ===== Guest ticket page ===== */
+const hash = decodeURIComponent(location.hash || "");
+if (hash.startsWith("#ticket=")) {
+  const payload = hash.slice(8);
+  $("#appView").classList.add("hide"); $("#ticketView").classList.remove("hide");
+  qr($("#tQr"), payload, 240);
+  const [, eid, gid] = payload.split(":");
+  $("#tGuest").textContent = "Ticket " + gid;
+  api("/events/" + eid).then(r => { if (r.status===200) $("#tEvent").textContent = r.data.name + " | " + r.data.date; });
+} else { init(); }
+
+/* ===== App ===== */
+function init(){
+  document.querySelectorAll("nav button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+  $("#eventSel").onchange = () => { currentEvent = $("#eventSel").value; loadAll(); };
+  $("#refreshBtn").onclick = loadEvents;
+  $("#filter").onchange = renderDashGuests;
+  $("#createEvent").onclick = createEvent;
+  $("#seedBtn").onclick = async () => { const r = await api("/seed",{method:"POST"}); toast(`Sample event ready: ${r.data.added} guests added`); currentEvent = r.data.eventId; loadEvents(); };
+  $("#csvFile").onchange = e => { const f=e.target.files[0]; if(f) f.text().then(t => $("#csvText").value = t); };
+  $("#uploadBtn").onclick = uploadGuests;
+  $("#inviteBtn").onclick = sendInvites;
+  $("#printBtn").onclick = printBadges;
+  $("#camBtn").onclick = toggleCamera;
+  $("#photoScan").onchange = scanPhoto;
+  $("#manualBtn").onclick = () => doCheckin($("#manualQr").value);
+  if (location.protocol !== "https:" && !["localhost","127.0.0.1"].includes(location.hostname))
+    $("#camNote").textContent = "Live camera needs an HTTPS page. On this HTTP address use Scan from photo, or open the HTTPS link to index.html (see README).";
+  loadEvents();
+  timer = setInterval(() => { if (!$("#tab-dashboard").classList.contains("hide")) loadDashboard(); }, 3000);
+}
+
+function showTab(name){
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("active", b.dataset.tab===name));
+  ["dashboard","events","guests","scan"].forEach(t => $("#tab-"+t).classList.toggle("hide", t!==name));
+  if (name!=="scan") stopCamera();
+  loadAll();
+}
+
+async function loadEvents(){
+  const r = await api("/events");
+  events = (r.data || []).sort((a,b)=>a.date.localeCompare(b.date));
+  if (!currentEvent && events.length) currentEvent = events[0].eventId;
+  $("#eventSel").innerHTML = events.length ? events.map(e => `<option value="${esc(e.eventId)}" ${e.eventId===currentEvent?"selected":""}>${esc(e.name)} (${esc(e.date)})</option>`).join("") : `<option>No events yet: create one or load sample data</option>`;
+  $("#eventRows").innerHTML = events.map(e => `<tr><td><b>${esc(e.name)}</b><div class="muted">${esc(e.eventId)}</div></td><td>${esc(e.date)}</td><td>${esc(e.venue)}</td><td>${e.guestCount}</td><td>${e.checkedInCount}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">No events yet.</td></tr>`;
+  loadAll();
+}
+
+function loadAll(){ if (!currentEvent) return; loadDashboard(); loadGuests(); }
+
+async function loadDashboard(){
+  if (!currentEvent) return;
+  const [ev, arr, gl] = await Promise.all([api("/events/"+currentEvent), api("/events/"+currentEvent+"/arrivals"), api("/events/"+currentEvent+"/guests")]);
+  if (ev.status!==200) return;
+  const total = ev.data.guestCount, inn = ev.data.checkedInCount, pct = total ? Math.round(inn*100/total) : 0;
+  $("#sGuests").textContent = total; $("#sIn").textContent = inn; $("#sOut").textContent = total-inn;
+  $("#sPct").textContent = pct+"%"; $("#sBar").style.width = pct+"%";
+  $("#feed").innerHTML = (arr.data||[]).map(a => `<li><span><b>${esc(a.name)}</b><div class="muted">${esc(a.checkedInBy)}</div></span><span class="muted">${fmtTime(a.checkedInAt)}</span></li>`).join("") || `<li class="muted">No arrivals yet.</li>`;
+  guests = gl.data || []; renderDashGuests();
+}
+function renderDashGuests(){
+  const f = $("#filter").value;
+  $("#dashGuests").innerHTML = guests.filter(g => !f || g.checkInStatus===f).map(g => `<tr><td>${esc(g.name)}</td><td>${pill(g.checkInStatus)}</td><td class="muted">${fmtTime(g.checkedInAt)}</td></tr>`).join("") || `<tr><td colspan="3" class="muted">No guests.</td></tr>`;
+}
+const pill = s => s==="CHECKED_IN" ? `<span class="pill in">Checked in</span>` : `<span class="pill reg">Registered</span>`;
+const invitePill = s => ({SENT:`<span class="pill sent">Emailed</span>`, FAILED:`<span class="pill fail">Email failed</span>`, LINK_ONLY:`<span class="pill reg">Link ready</span>`}[s] || `<span class="pill reg">Not sent</span>`);
+
+async function loadGuests(){
+  if (!currentEvent) return;
+  const r = await api("/events/"+currentEvent+"/guests"); guests = r.data || [];
+  $("#guestRows").innerHTML = guests.map((g,i) => `<tr><td><div class="qrmini" id="mq${i}"></div></td><td><b>${esc(g.name)}</b><div class="muted">${esc(g.guestId)}</div></td><td>${esc(g.email)}</td><td>${invitePill(g.inviteStatus)}</td><td>${pill(g.checkInStatus)}</td><td><button class="btn ghost" data-link="${i}">Ticket link</button></td></tr>`).join("") || `<tr><td colspan="6" class="muted">No guests yet. Upload a list above.</td></tr>`;
+  guests.forEach((g,i) => qr($("#mq"+i), g.qrPayload, 56));
+  document.querySelectorAll("[data-link]").forEach(b => b.onclick = () => {
+    const link = ticketBase() + "#ticket=" + guests[b.dataset.link].qrPayload;
+    navigator.clipboard?.writeText(link).then(()=>toast("Ticket link copied"), ()=>window.open(link));
+  });
+}
+const ticketBase = () => location.href.split("#")[0];
+
+async function createEvent(){
+  const body = {name:$("#evName").value.trim(), date:$("#evDate").value, venue:$("#evVenue").value.trim()};
+  const r = await api("/events", {method:"POST", body:JSON.stringify(body)});
+  if (r.status!==201) return toast(r.data.error || "Could not create event");
+  toast("Event created"); currentEvent = r.data.eventId; ["#evName","#evDate","#evVenue"].forEach(s=>$(s).value=""); loadEvents();
+}
+
+function parseCsv(text){
+  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  if (!lines.length) return [];
+  const head = lines[0].toLowerCase().split(",").map(s=>s.trim());
+  const hasHead = head.includes("name") && head.includes("email");
+  const ni = hasHead ? head.indexOf("name") : 0, ei = hasHead ? head.indexOf("email") : 1;
+  return lines.slice(hasHead?1:0).map(l => { const c = l.split(",").map(s=>s.trim().replace(/^"|"$/g,"")); return {name:c[ni], email:c[ei]}; });
+}
+async function uploadGuests(){
+  if (!currentEvent) return toast("Create or select an event first");
+  const rows = parseCsv($("#csvText").value);
+  if (!rows.length) return toast("Paste or choose a CSV first");
+  const r = await api(`/events/${currentEvent}/guests`, {method:"POST", body:JSON.stringify({guests:rows})});
+  if (r.status!==201) return toast(r.data.error || "Upload failed");
+  $("#uploadMsg").textContent = `${r.data.added.length} added, ${r.data.skipped.length} already on the list, ${r.data.errors.length} invalid rows`;
+  $("#csvText").value = ""; loadEvents();
+}
+async function sendInvites(){
+  if (!currentEvent) return;
+  $("#inviteBtn").disabled = true; $("#inviteMsg").textContent = "Sending...";
+  const r = await api(`/events/${currentEvent}/invites`, {method:"POST", body:JSON.stringify({baseUrl:ticketBase()})});
+  $("#inviteBtn").disabled = false;
+  const res = r.data.results || [], c = s => res.filter(x=>x.status===s).length;
+  $("#inviteMsg").textContent = `${c("SENT")} emailed, ${c("LINK_ONLY")} links ready (email not configured), ${c("FAILED")} failed`;
+  const fail = res.find(x=>x.status==="FAILED"); if (fail) toast("SES: " + fail.detail);
+  loadGuests();
+}
+function printBadges(){
+  const area = $("#printArea"); area.classList.remove("hide");
+  const ev = events.find(e=>e.eventId===currentEvent) || {};
+  area.innerHTML = guests.map((g,i)=>`<div class="badge"><span class="muted">${esc(ev.name||"")}</span><div class="q" id="pq${i}"></div><b>${esc(g.name)}</b><span class="muted">${esc(g.guestId)}</span></div>`).join("");
+  guests.forEach((g,i)=>qr($("#pq"+i), g.qrPayload, 140));
+  setTimeout(()=>{ window.print(); area.classList.add("hide"); }, 400);
+}
+
+/* ===== Scanning ===== */
+async function toggleCamera(){
+  if (cam) return stopCamera();
+  cam = new Html5Qrcode("reader");
+  try {
+    await cam.start({facingMode:"environment"}, {fps:10, qrbox:240}, onScan);
+    $("#camBtn").textContent = "Stop camera";
+  } catch(e) { cam = null; toast("Camera unavailable: " + e); }
+}
+function stopCamera(){ if (cam) { cam.stop().catch(()=>{}).finally(()=>{ cam.clear(); cam=null; }); $("#camBtn").textContent = "Start camera"; } }
+function onScan(text){
+  // Client side debounce for the same code; the real protection is the DynamoDB conditional write.
+  if (text===lastText && Date.now()-lastAt < 4000) return;
+  lastText = text; lastAt = Date.now(); doCheckin(text);
+}
+async function scanPhoto(e){
+  const f = e.target.files[0]; if (!f) return;
+  try { const s = new Html5Qrcode("fileScanTmp"); const text = await s.scanFile(f, false); doCheckin(text); }
+  catch(err){ showResult("bad","No QR code found","Try a clearer photo"); }
+  e.target.value = "";
+}
+async function doCheckin(text){
+  if (!text || !text.trim()) return;
+  const r = await api("/checkin", {method:"POST", body:JSON.stringify({qr:text.trim(), staff:$("#staff").value})});
+  if (r.status===200) { showResult("ok", r.data.message, "Checked in at " + fmtTime(r.data.guest.checkedInAt)); beep(880); }
+  else if (r.status===409) { showResult("dup", "Already checked in: " + r.data.guest.name, `Entered at ${fmtTime(r.data.guest.checkedInAt)} via ${r.data.guest.checkedInBy}`); beep(300); }
+  else { showResult("bad", "Invalid ticket", r.data.message || r.data.error); beep(200); }
+  $("#manualQr").value = "";
+}
+function showResult(kind, title, detail){ $("#scanResult").innerHTML = `<div class="result ${kind}">${esc(title)}<small>${esc(detail||"")}</small></div>`; }
+function beep(freq){ try { const a=new AudioContext(), o=a.createOscillator(); o.frequency.value=freq; o.connect(a.destination); o.start(); o.stop(a.currentTime+0.15); } catch(e){} }
+</script>
+</body>
+</html>
